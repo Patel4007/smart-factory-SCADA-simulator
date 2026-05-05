@@ -1,0 +1,2 @@
+[console_scripts]
+smart-factory-scada = smart_factory_scada.api:run

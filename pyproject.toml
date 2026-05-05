@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "smart-factory-scada-simulator"
+version = "0.1.0"
+description = "SCADA-style smart factory simulator with live Kafka telemetry and an interactive dashboard."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "aiokafka>=0.11.0",
+    "fastapi>=0.115.0",
+    "h5py>=3.10.0",
+    "numpy>=1.26.0",
+    "pydantic>=2.8.0",
+    "uvicorn[standard]>=0.30.0",
+]
+
+[project.scripts]
+smart-factory-scada = "smart_factory_scada.api:run"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]

@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Smart Factory SCADA Simulator</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <header class="hero">
+        <div class="hero__copy">
+          <p class="eyebrow">Industrial Control Sandbox</p>
+          <h1>Smart Factory SCADA Simulator</h1>
+          <p class="hero__text">
+            Live operator console for a five-station production line replaying real Bosch CNC vibration traces with
+            Kafka-fed telemetry, downtime tracking, alarm visibility, and real-time control actions.
+          </p>
+        </div>
+        <div class="hero__status">
+          <div class="status-card">
+            <span class="status-card__label">Line State</span>
+            <strong id="line-state">Loading...</strong>
+          </div>
+          <div class="status-card">
+            <span class="status-card__label">Transport</span>
+            <strong id="transport-mode">Loading...</strong>
+          </div>
+          <div class="status-card">
+            <span class="status-card__label">Heartbeat</span>
+            <strong id="heartbeat">Waiting...</strong>
+          </div>
+        </div>
+      </header>
+
+      <main class="grid">
+        <section class="panel panel--wide">
+          <div class="panel__header">
+            <div>
+              <p class="eyebrow">Executive KPIs</p>
+              <h2>Line Performance</h2>
+            </div>
+            <p id="plant-meta" class="panel__meta"></p>
+          </div>
+          <div id="kpi-grid" class="kpi-grid"></div>
+        </section>
+
+        <section class="panel">
+          <div class="panel__header">
+            <div>
+              <p class="eyebrow">Operator Controls</p>
+              <h2>Line Commands</h2>
+            </div>
+          </div>
+          <div class="button-row">
+            <button data-line-action="start" class="button--start">Start</button>
+            <button data-line-action="stop" class="button--ghost">Stop</button>
+            <button data-line-action="reset" class="button--ghost">Reset</button>
+          </div>
+          <div id="command-feedback" class="feedback"></div>
+          <div class="stream-widget">
+            <div class="stream-widget__header">
+              <div>
+                <p class="eyebrow">Live Channel</p>
+                <h3 class="stream-widget__title">Real-Time Streaming</h3>
+              </div>
+              <span id="stream-status-badge" class="stream-badge stream-badge--disconnected">Disconnected</span>
+            </div>
+            <div class="stream-widget__row">
+              <label class="stream-widget__field">
+                <span class="chart__label">Channel</span>
+                <select id="stream-channel-select" class="stream-select"></select>
+              </label>
+            </div>
+            <div class="button-row button-row--stream">
+              <button id="stream-connect-button" class="button--stream">Connect</button>
+              <button id="stream-disconnect-button" class="button--ghost">Disconnect</button>
+            </div>
+            <div id="stream-channel-detail" class="feedback">Loading available stream channels...</div>
+          </div>
+          <form id="upload-form" class="upload-widget upload-widget--inline">
+            <div class="stream-widget__header">
+              <div>
+                <p class="eyebrow">Real Data Intake</p>
+                <h3 class="stream-widget__title">Upload Trace</h3>
+              </div>
+            </div>
+            <label class="stream-widget__field">
+              <span class="chart__label">Target Machine</span>
+              <select id="upload-machine-select" class="stream-select"></select>
+            </label>
+            <div class="upload-grid">
+              <label class="stream-widget__field">
+                <span class="chart__label">Replay Role</span>
+                <select id="upload-role-select" class="stream-select">
+                  <option value="normal">Normal Replay</option>
+                  <option value="fault">Fault Replay</option>
+                </select>
+              </label>
+              <label class="stream-widget__field">
+                <span class="chart__label">Sample Rate (Hz)</span>
+                <input id="upload-sample-rate" class="control-input" type="number" min="1" step="1" value="2000" />
+              </label>
+            </div>
+            <label class="stream-widget__field">
+              <span class="chart__label">Trace File</span>
+              <input id="upload-file-input" class="file-input" type="file" accept=".h5,.hdf5,.csv,.txt" />
+            </label>
+            <div class="button-row button-row--stream">
+              <button id="upload-submit-button" type="submit" class="button--upload">Upload Data</button>
+            </div>
+            <div id="upload-feedback" class="feedback">
+              Load a `.h5`, `.hdf5`, `.csv`, or `.txt` vibration trace and bind it to a machine replay profile.
+            </div>
+            <div class="upload-library">
+              <p class="eyebrow">Active Uploads</p>
+              <div id="upload-binding-list" class="stack"></div>
+            </div>
+          </form>
+        </section>
+
+        <section class="panel">
+          <div class="panel__header">
+            <div>
+              <p class="eyebrow">Fault Scenarios</p>
+              <h2>Incident Injection</h2>
+            </div>
+          </div>
+          <div id="scenario-list" class="scenario-list"></div>
+        </section>
+
+        <section class="panel panel--wide">
+          <div class="panel__header">
+            <div>
+              <p class="eyebrow">Production Topology</p>
+              <h2>Machine Lineup</h2>
+            </div>
+            <p class="panel__meta">Adjust speed, clear faults, or hold a station for maintenance.</p>
+          </div>
+          <div id="machines-grid" class="machines-grid"></div>
+        </section>
+
+        <section class="panel panel--wide">
+          <div class="panel__header">
+            <div>
+              <p class="eyebrow">Trend View</p>
+              <h2>Live History</h2>
+            </div>
+          </div>
+          <div id="chart-grid" class="chart-grid"></div>
+        </section>
+
+        <section class="panel">
+          <div class="panel__header">
+            <div>
+              <p class="eyebrow">Alarm Board</p>
+              <h2>Active Alarms</h2>
+            </div>
+          </div>
+          <div id="alarm-list" class="stack"></div>
+        </section>
+
+        <section class="panel">
+          <div class="panel__header">
+            <div>
+              <p class="eyebrow">Operator Feed</p>
+              <h2>Events</h2>
+            </div>
+          </div>
+          <div id="event-list" class="stack"></div>
+        </section>
+      </main>
+    </div>
+
+    <script src="/static/app.js" defer></script>
+  </body>
+</html>

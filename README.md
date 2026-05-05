@@ -1,0 +1,161 @@
+# Smart Factory SCADA Simulator
+
+Full-stack industrial automation simulator that models a five-station production line, streams telemetry through Kafka, and exposes a live SCADA-style control dashboard for throughput, downtime, alarms, and system health.
+
+This version replays real industrial vibration traces from the Bosch CNC Machining Dataset and derives machine health, throughput drift, power draw, and alarm behavior from those measured signals instead of relying only on synthetic noise.
+
+## What It Demonstrates
+
+- Machine-level production simulation with buffers, faults, starvation, blocking, scrap, and maintenance windows
+- Real-data replay from curated Bosch CNC machining traces bundled in the repo
+- Live telemetry streaming with Kafka topics for machine metrics, line KPIs, and operator/control events
+- A browser dashboard that consumes live server-sent events and supports control actions in real time
+- Operator upload flow for binding custom HDF5 or CSV vibration traces to live machine replay profiles
+- SCADA-style operational visibility across throughput, OEE, downtime, alarms, energy draw, and buffer utilization
+- A fallback in-memory transport for local testing when Kafka is unavailable, with the active transport shown in the UI
+
+## Architecture
+
+```mermaid
+flowchart LR
+    A["Real Bosch CNC Trace Replay"] -->|window features| B["Simulation Engine"]
+    B -->|machine telemetry| C["Kafka topic: scada.machine.telemetry"]
+    B -->|line KPIs| D["Kafka topic: scada.line.kpis"]
+    E["Operator API"] -->|control + scenario events| F["Kafka topic: scada.control.events"]
+    C --> G["Dashboard State Reducer"]
+    D --> G
+    F --> G
+    G -->|SSE snapshots| H["Interactive SCADA Dashboard"]
+    E --> B
+```
+
+## Project Layout
+
+```text
+smart-factory-scada-simulator/
+├── data/
+│   └── bosch_cnc_sample/
+│       └── README.md
+├── docker-compose.yml
+├── Dockerfile
+├── pyproject.toml
+├── README.md
+├── src/smart_factory_scada/
+│   ├── api.py
+│   ├── config.py
+│   ├── dashboard.py
+│   ├── hub.py
+│   ├── models.py
+│   ├── real_data.py
+│   ├── simulation.py
+│   ├── streaming.py
+│   └── static/
+│       ├── app.js
+│       ├── index.html
+│       └── styles.css
+└── tests/
+```
+
+## Real Data Source
+
+The bundled sample comes from the official Bosch CNC Machining Dataset:
+
+- UCI dataset page: [Bosch CNC Machining Dataset](https://archive.ics.uci.edu/dataset/752/bosch%2Bcnc%2Bmachining%2Bdataset)
+- Original Bosch Research repository: [boschresearch/CNC_Machining](https://github.com/boschresearch/CNC_Machining)
+- Paper DOI: [10.1016/j.procir.2022.04.022](https://doi.org/10.1016/j.procir.2022.04.022)
+
+The source dataset contains real tri-axial accelerometer data sampled at 2 kHz from brownfield CNC milling machines over multiple timeframes. This project bundles four small HDF5 traces, including both `good` and `bad` examples, and turns windowed signal statistics into SCADA-facing metrics.
+
+## Kafka Topics
+
+- `scada.machine.telemetry`: per-machine readings including state, throughput, temperature, vibration, power, buffer fill, and alarm code
+- `scada.line.kpis`: production-line snapshots including throughput, downtime, OEE, energy, quality, and overall health
+- `scada.control.events`: operator actions, scenario injections, alarms, recoveries, and reset activity
+
+## Replay Model
+
+- Each virtual station is assigned a curated Bosch trace and replays it in windows.
+- RMS and peak vibration from each real window are converted into live vibration, temperature, power, and health signals.
+- Normal `good` traces drive standard operation, while the bundled `bad` trace is activated for fault scenarios and quality drift.
+- The SCADA controls still manage line start/stop, maintenance, and fault injections, but the live telemetry is anchored to recorded measurements.
+
+## Uploading Custom Data
+
+- Open the `Upload Trace` panel in the dashboard.
+- Choose a target machine and whether the file should become that machine's `Normal Replay` or `Fault Replay`.
+- Upload `.h5`, `.hdf5`, `.csv`, or `.txt` vibration data. HDF5 files can use `vibration_data` or the first numeric dataset discovered in the file.
+- CSV and text uploads should contain one to three numeric vibration columns. Header rows are allowed.
+- Once the upload completes, the active data source banner and machine trace assignment update immediately in the live UI.
+
+## Local Run
+
+### Option 1: Docker Compose With Kafka
+
+```bash
+docker compose up --build
+```
+
+Open [http://127.0.0.1:8000](http://127.0.0.1:8000).
+
+The stack includes:
+
+- `kafka` on internal `kafka:9092`
+- host-exposed Kafka listener on `localhost:19092`
+- `app` on `localhost:8000`
+
+### Option 2: Local Python With In-Memory Streaming
+
+```bash
+python3 -m pip install -e .
+smart-factory-scada
+```
+
+This mode still runs the full simulation and dashboard, but uses the in-memory transport instead of Kafka.
+
+### Option 3: Local Python Against Kafka
+
+Start Kafka with Compose:
+
+```bash
+docker compose up kafka
+```
+
+Then run the app locally:
+
+```bash
+SCADA_USE_KAFKA=true SCADA_KAFKA_BOOTSTRAP_SERVERS=127.0.0.1:19092 smart-factory-scada
+```
+
+## Key Endpoints
+
+- `GET /api/health`
+- `GET /api/dashboard`
+- `GET /api/scenarios`
+- `GET /api/events`
+- `GET /api/data/uploads`
+- `POST /api/control/line`
+- `POST /api/control/machines/{machine_id}`
+- `POST /api/scenarios/{scenario_id}`
+- `PUT /api/data/upload/{machine_id}/{role}`
+
+## Control Ideas
+
+- Stop and restart the full line to see availability and throughput change immediately.
+- Trigger `conveyor-jam` to create a critical assembly fault and downstream starvation.
+- Trigger `quality-drift` to switch the quality gate onto an anomalous real Bosch trace and watch scrap rise.
+- Put `PAC-05` into maintenance mode to simulate a scheduled intervention.
+- Change a machine speed setpoint and watch throughput and energy respond while the underlying trace RMS and peak values continue to update.
+
+## Tests
+
+```bash
+PYTHONPATH=src python3 -m unittest discover -s tests -t .
+```
+
+## Portfolio Talking Points
+
+- Designed a realistic SCADA-like control loop with command, telemetry, and KPI streams rather than a single polling endpoint.
+- Grounded the simulator in real Bosch CNC vibration traces and translated recorded windows into operator-facing SCADA metrics.
+- Modeled production-line constraints such as buffer saturation, upstream starvation, fault states, and quality drift.
+- Built a live operations UI that turns Kafka-backed event streams into operator-friendly alarms, controls, and KPIs.
+- Kept the system demonstrable without Kafka by providing an explicit in-memory transport fallback for tests and local development.
