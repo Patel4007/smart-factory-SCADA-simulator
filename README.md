@@ -29,6 +29,15 @@ flowchart LR
     E --> B
 ```
 
+## Project Output
+
+<p align="center">
+  <img src="images/dashboard.png" width="250" height="255">
+  <img src="images/operations_view.png" width="250" height="255">
+  <img src="images/production_view.png" width="250" height="255">
+  <img src="images/events_and_analytics.png" width="250" height="255">
+</p>
+
 ## Project Layout
 
 ```text
