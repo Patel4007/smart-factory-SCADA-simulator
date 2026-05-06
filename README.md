@@ -151,11 +151,3 @@ SCADA_USE_KAFKA=true SCADA_KAFKA_BOOTSTRAP_SERVERS=127.0.0.1:19092 smart-factory
 ```bash
 PYTHONPATH=src python3 -m unittest discover -s tests -t .
 ```
-
-## Portfolio Talking Points
-
-- Designed a realistic SCADA-like control loop with command, telemetry, and KPI streams rather than a single polling endpoint.
-- Grounded the simulator in real Bosch CNC vibration traces and translated recorded windows into operator-facing SCADA metrics.
-- Modeled production-line constraints such as buffer saturation, upstream starvation, fault states, and quality drift.
-- Built a live operations UI that turns Kafka-backed event streams into operator-friendly alarms, controls, and KPIs.
-- Kept the system demonstrable without Kafka by providing an explicit in-memory transport fallback for tests and local development.
